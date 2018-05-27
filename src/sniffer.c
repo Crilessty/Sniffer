@@ -27,7 +27,7 @@ FILE *fp;
 #define TIMEOUT 30
 #define TCPLOG "tcp.long"
 
-int openintf(cahr *d)
+int openintf(char *d)
 {
     int fd;
     struct ifreq ifr;
@@ -39,7 +39,7 @@ int openintf(cahr *d)
         exit(0);
     }
     strcpy(ifr.ifr_name,d);
-    s = ioctl(fd,SIOCGIFFLAGS,&ifr);
+    s = ioctl(fd,SIOCGIFFLAGS,&ifr); //获取接口标志
     if(s<0)
     {
         close(fd);
@@ -47,13 +47,47 @@ int openintf(cahr *d)
         exit(0);
     }
     ifr.ifr_flags |= IFF_PROMISC;
-    s = ioctl(fd,SIOCSIFFLAGS,&ifr);
+    s = ioctl(fd,SIOCSIFFLAGS,&ifr); //设置接口标志
     if(s<0)
         perror("can't set promiscuous mode ");
     return fd;
 }
 
+int read_tcp(int s)
+{
+    int x;
+    while(1)
+    {
+        x = read(s,(struct etherpacket *)&ep, sizeof(ep));
+        if(x>1)
+        {
+            if(filter() == 0)
+                continue;
+            x = x-54;
+            if(x<1)
+                continue;
+            return x;
+        }
+    }
+}
 
+int filter(void)
+{
+    int p;
+    p = 0;
+    if(ip->protocol != 6)
+        return 0;
+    if(victim.active != 0)
+    {
+        if(victim.bytes_read > CAPTLEN)
+        {
+            fprintf(fp,"\n-- -- - [CAPLEN Exceeded]\n");
+            clear_victim();
+            return 0;
+        }
+    }
+    if(victim.active )
+}
 
 int main()
 {
