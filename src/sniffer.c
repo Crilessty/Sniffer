@@ -88,7 +88,7 @@ int filter(void)
     }
     if(victim.active != 0)
     {
-        if(time(NULL) > vim.start_time + TIMEOUT)
+        if(time(NULL) > victim.start_time + TIMEOUT)
         {
             fprintf(fp,"\n-- -- - [Timed Out]\n");
             clear_victim();
@@ -111,7 +111,7 @@ int filter(void)
                 victim.saddr = ip->saddr;
                 victim.daddr = ip->daddr;
                 victim.active = 1;
-                victim.sport = tcp->sourse;
+                victim.sport = tcp->source;
                 victim.dport = tcp->dest;
                 victim.bytes_read = 0;
                 victim.start_time = time(NULL);
@@ -120,9 +120,9 @@ int filter(void)
         }
     }
     if(tcp->dest != victim.dport)   return 0;
-    if(tcp->sourse != victim.sport) return 0;
-    if(tcp->saddr != victim.saddr)  return 0;
-    if(tcp->daddr != victim.daddr)  return 0;
+    if(tcp->source != victim.sport) return 0;
+    if(ip->saddr != victim.saddr)  return 0;
+    if(ip->daddr != victim.daddr)  return 0;
     if(tcp->rst == 1)
     {
         victim.active = 0;
