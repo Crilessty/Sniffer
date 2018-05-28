@@ -25,4 +25,4 @@ int print_header(void);
 int print_data(int ,char * );
 char *  hostlookup(unsigned long int);
 void clear_victim(void);
-void cleanup(void);
+void cleanup(int sig;
