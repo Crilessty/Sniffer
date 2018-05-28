@@ -15,6 +15,8 @@
 #include<netinet/tcp.h>
 #include<netinet/if_ether.h>
 #include<unistd.h>
+#include<time.h>
+#include<signal.h>
 
 int openintf(char *);
 int read_tcp(int );

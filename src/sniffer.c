@@ -200,7 +200,7 @@ void clear_victim()
 }
 
 //cheanup:退出事件时，在文件中进行记录，然后关闭。
-void cleanup()
+void cleanup(int sig)
 {
     fprintf(fp,"Exiting...\n");
     close(s);
@@ -221,7 +221,7 @@ int main(int argc,char **argv)
     signal(SIGQUIT,cleanup);
 
     if(argc == 2)      
-        fp = stout;
+        fp = stdout;
     else    
         fp = fopen(TCPLOG,"at");
     if(fp == NULL)
