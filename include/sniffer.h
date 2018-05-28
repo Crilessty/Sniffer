@@ -3,10 +3,10 @@
 #include<sys/socket.h> 
 #include<string.h>
 #include<ctype.h>
-#include<netdb>
+#include<netdb.h>
 #include<sys/file.h>
 #include<sys/time.h>
-#include<sys/iocel.h>
+#include<sys/ioctl.h>
 #include<sys/signal.h>
 #include<net/if.h>
 #include<arpa/inet.h>
@@ -20,6 +20,6 @@ int read_tcp(int );
 int filter(void );
 int print_header(void);
 int print_data(int ,char * );
-cahr *  hostlookup(unsigned long int);
+char *  hostlookup(unsigned long int);
 void chear_victim(void);
 void cleanup(void);
