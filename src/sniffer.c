@@ -53,6 +53,7 @@ int openintf(char *d)
     return fd;
 }
 
+//TCP包最小54字节
 int read_tcp(int s)
 {
     int x;
@@ -73,8 +74,6 @@ int read_tcp(int s)
 
 int filter(void)
 {
-    int p;
-    p = 0;
     if(ip->protocol != 6)
         return 0;
     if(victim.active != 0)
@@ -95,28 +94,19 @@ int filter(void)
             return 0;
         }
     }
-    if(ntohs(tcp->dest) == 21)  p = 1;      //ftp
-    if(ntohs(tcp->dest) == 23)  p = 1;      //telnet  
-    if(ntohs(tcp->dest) == 110)  p = 1;     //pop3
-    if(ntohs(tcp->dest) == 109)  p = 1;     //pop2
-    if(ntohs(tcp->dest) == 143)  p = 1;     //imap2
-    if(ntohs(tcp->dest) == 513)  p = 1;     //rlogin
-    if(ntohs(tcp->dest) == 106)  p = 1;     //poppasswd
+    
     if(victim.active == 0)
     {
-        if(p == 1)
+        if(tcp->syn == 1)
         {
-            if(tcp->syn == 1)
-            {
-                victim.saddr = ip->saddr;
-                victim.daddr = ip->daddr;
-                victim.active = 1;
-                victim.sport = tcp->source;
-                victim.dport = tcp->dest;
-                victim.bytes_read = 0;
-                victim.start_time = time(NULL);
-                print_header();
-            }
+            victim.saddr = ip->saddr;
+            victim.daddr = ip->daddr;
+            victim.active = 1;
+            victim.sport = tcp->source;
+            victim.dport = tcp->dest;
+            victim.bytes_read = 0;
+            victim.start_time = time(NULL);
+            print_header();
         }
     }
     if(tcp->dest != victim.dport)   return 0;
